@@ -18,18 +18,18 @@ class BaseRe(object):
     The base class for all classes equipped with z3 regular expressions.
     """
 
-    def __init__(self):
+    def __init__(self, slv: cvc5.Solver):  #<---- Added Sover
         #print("Setting up the solver in BaseRe \n")
 
-        self.slv = cvc5.Solver()
+        self.slv = slv
         # Set the logic
-        self.slv.setLogic("ALL")
+      #  self.slv.setLogic("ALL")
         # Produce models
-        self.slv.setOption("produce-models", "true")
+      #  self.slv.setOption("produce-models", "true")
         # The option strings-exp is needed
-        self.slv.setOption("strings-exp", "true")
+      #  self.slv.setOption("strings-exp", "true")
         # Set output language to SMTLIB2
-        self.slv.setOption("output-language", "smt2")
+      #  self.slv.setOption("output-language", "smt2")
         # String type
         self.string = self.slv.getStringSort()
 
@@ -42,9 +42,9 @@ class BaseRe(object):
         Override this method in child classes for more complex types/behavior.
         """
         self.data = value
-        print("\n BaseRe set data =", self.data)
+        #print("\n BaseRe set data =", self.data)
 
-    def get_cvc_boolterm(self, name: str) -> cvc5.Term:
+    def get_cvc_boolterm(self, name: str, slv:cvc5.Solver) -> cvc5.Term:
         """
                 Generate a z3 boolean expression in one or more free variables that equals the constraint in the free variable(s)
                 represented by the value specified for this instance.
@@ -55,12 +55,14 @@ class BaseRe(object):
         """
         if not hasattr(self, 'data') or not self.data:
             raise MissingInstanceData('No data on instance. get_cvc_bool_term requires data. Was set_data called()?')
-        print("forming cvc boolterm -->" , name)
+        #print("forming cvc boolterm -->" , name)
         # String variables
-        free_var = self.slv.mkConst(self.string, name)
-        print("free_var = ", free_var)
-        term = self.slv.mkTerm(Kind.STRING_IN_REGEXP, free_var, self.to_re())
-        print(" \n term = " , term)
+        #free_var = self.slv.mkConst(self.string, name)
+        free_var = slv.mkConst(self.string, name)
+        #print("free_var = ", free_var)
+        #term = self.slv.mkTerm(Kind.STRING_IN_REGEXP, free_var, self.to_re())
+        term = slv.mkTerm(Kind.STRING_IN_REGEXP, free_var, self.to_re())
+        #print(" \n term = " , term)
         return term
 
 
@@ -74,11 +76,11 @@ class StringEnumRe(BaseRe):
 
     """
 
-    def __init__(self, values: list[str]):
+    def __init__(self, values: list[str], slv:cvc5.Solver): #<---- Added Sover
         """
         `values` - the allowable string values
         """
-        BaseRe.__init__(self)
+        BaseRe.__init__(self, slv)
         for v in values:
             for c in RESERVED_CHARS:
                 if c in v:
@@ -103,10 +105,10 @@ class StringEnumRe(BaseRe):
             message = f"value {value} is not allowed for type {type(self)}; allowed values are {self.values}"
             raise InvalidValueError(message=message)
         #return z3.Re(z3.StringVal(value))
-        print("\n StringEnumRe = ", value)
+        #print("\n StringEnumRe = ", value)
         term = self.slv.mkTerm(Kind.STRING_TO_REGEXP,
                         self.slv.mkString(value))
-        print(" \n term = ", term)
+        #print(" \n term = ", term)
         return term
         #return self.slv.mkTerm(Kind.STRING_TO_REGEXP,
         #                self.slv.mkString(value))
@@ -118,11 +120,11 @@ class StringRe(BaseRe):
     Example: path, username
     """
 
-    def __init__(self, charset: set[chr]) -> None:
+    def __init__(self, charset: set[chr], slv:cvc5.Solver) -> None:
         """
         `charset` - the set of allowable characters for this type.
         """
-        BaseRe.__init__(self)
+        BaseRe.__init__(self, slv)
         if charset.intersection(RESERVED_CHARS):
             raise InvalidCharacterError(f'The provided charset includes a reserved character and cannot be used.')
         self.charset = charset
@@ -181,8 +183,9 @@ class StringTupleRe(BaseRe):
     Base class for working with types that are tuples of string types.
     """
 
-    def __init__(self, fields: list[Dict[str, Any]]) -> None:
-        BaseRe.__init__(self)
+    def __init__(self, fields: list[Dict[str, Any]], slv: cvc5.Solver) -> None: #<---- Added Sover
+        BaseRe.__init__(self, slv) #<---- Added Sover
+        #print("\n fields: ", fields)
         for f in fields:
             if not 'name' in f:
                 raise InvalidStringTupleStructure(message=f'field {f} missing required "name" key.')
@@ -194,6 +197,7 @@ class StringTupleRe(BaseRe):
                 raise InvalidStringTupleStructure(message=f'field {f} "type" property should be type Type.')
             # create an instance of f['type'] passing the **f['kwargs'] as the key-word arguments to the constructor.
             val = f['type'](**f['kwargs'])
+            #print("\n val = ", val)
             setattr(self, f['name'], val)
 
         self.fields = fields
@@ -206,32 +210,32 @@ class StringTupleRe(BaseRe):
         res = []
         # for debugging
         i=0
-        print("\n fields: ", self.fields)
+        #print("\n fields: ", self.fields)
         ###
         for idx, field in enumerate(self.fields):
             value = self.data[field['name']]
-            print("\n name  = ", value, "  field = ", field)
+            #print("\n name  = ", value, "  field = ", field)
             res.append(field['type'].to_re(getattr(self, field['name']), value))
             #### for debugging
-            if i == 0:
-                print("\n res = ", res)
-            i = i + 1
+            #if i == 0:
+            #    print("\n res = ", res)
+            #i = i + 1
             ####
             # separate each field in the tuple with a dot ('.') character, but not after the very last field:
             if idx < len(self.fields) - 1:
-                print ("\n size(fields) = ", len(self.fields),  " idx = ", idx)
+                #print ("\n size(fields) = ", len(self.fields),  " idx = ", idx)
                 #res.append(z3.Re(z3.StringVal('.')))
                 res.append(self.slv.mkTerm(Kind.STRING_TO_REGEXP,
                                self.slv.mkString('.')))
-                print("\n res = ", res)
+                #print("\n res = ", res)
             #print(res)
         #return z3.Concat(*res)
-        print("\n final res = ", res)
+        #print("\n final res = ", res)
         e = self.slv.mkTerm(Kind.STRING_TO_REGEXP,self.slv.mkString('tacc'))
 
         #e = res[0]
         y = self.slv.mkTerm(Kind.REGEXP_CONCAT, *res)
-        print("y = ", y)
+        #print("y = ", y)
         return y
 
         #return self.slv.mkTerm(Kind.REGEXP_CONCAT,e, p[1],p[2],p[3], p[4])
@@ -242,7 +246,7 @@ class StringTupleRe(BaseRe):
                 raise InvalidStringTupleData(
                     message=f'Got unexpected argument {k} to set_data(). Fields are: {self.field_names}')
             self.data[k] = v
-        print("\n StringTupleRe set data =", self.data)
+        #print("\n StringTupleRe set data =", self.data)
         # check that all fields were set
         for f in self.field_names:
             if f not in self.data.keys():
@@ -382,16 +386,16 @@ class PolicyEquivalenceChecker(object):
     Class for reasoning formally about two sets of policies.
     """
 
-    def __init__(self, policy_type: type, policy_set_p: list[BasePolicy], policy_set_q: list[BasePolicy]):
-        self.slv = cvc5.Solver()
-        # Set the logic
-        self.slv.setLogic("ALL")
-        # Produce models
-        self.slv.setOption("produce-models", "true")
-        # The option strings-exp is needed
-        self.slv.setOption("strings-exp", "true")
-        # Set output language to SMTLIB2
-        self.slv.setOption("output-language", "smt2")
+    def __init__(self, policy_type: type, policy_set_p: list[BasePolicy], policy_set_q: list[BasePolicy], slv:cvc5.Solver):
+        self.slv = slv
+        # # Set the logic
+        # self.slv.setLogic("ALL")
+        # # Produce models
+        # self.slv.setOption("produce-models", "true")
+        # # The option strings-exp is needed
+        # self.slv.setOption("strings-exp", "true")
+        # # Set output language to SMTLIB2
+        # self.slv.setOption("output-language", "smt2")
 
 
 
@@ -435,15 +439,13 @@ class PolicyEquivalenceChecker(object):
         and_list = []
         for p in policy_set:
             #boolrefs = [getattr(p, f).get_z3_boolref(f) for f in self.z3_constraint_property_names]
-            #boolrefs = [getattr(p, f).get_cvc_boolterm(f) for f in self.z3_constraint_property_names]
-            boolterms = []
-            for f in self.z3_constraint_property_names:
-                print("f = ", f, " \n")
-                boolterms.append(getattr(p, f).get_cvc_boolterm(f))
-                #print(boolterms)
+            boolterms = [getattr(p, f).get_cvc_boolterm(f,self.slv) for f in self.z3_constraint_property_names]
 
             #and_list.append(z3.And(*boolrefs))
-            and_list.append(self.slv.mkTerm(Kind.AND, *boolterms))
+            #if len(boolterms) == 1:
+            #and_list.append(self.slv.mkTerm(Kind.AND, boolterms[0],self.slv.mkBoolean(True) ))
+            #else:
+            and_list.append(self.slv.mkTerm(Kind.AND,*boolterms))
 
 
         #print(and_list)
@@ -455,23 +457,46 @@ class PolicyEquivalenceChecker(object):
             return self.slv.mkTerm(Kind.OR, *allow_match_list)
         else:
             #return z3.And(z3.Or(*allow_match_list), z3.Not(z3.And(*deny_match_list)))
+            #return self.slv.mkTerm(Kind.AND,
+            #                       self.slv.mkTerm(Kind.OR, *allow_match_list),
+            #                            self.slv.mkTerm(Kind.NOT,
+            #                                       self.slv.mkTerm(Kind.AND, *deny_match_list)))
+
+            #if len(allow_match_list) == 1 and len(deny_match_list) == 1:
+            #    return self.slv.mkTerm(Kind.AND,
+            #                       self.slv.mkTerm(Kind.OR, allow_match_list[0], self.slv.mkBoolean(False)),
+            #                       self.slv.mkTerm(Kind.NOT,
+            #                                       self.slv.mkTerm(Kind.AND, deny_match_list[0],self.slv.mkBoolean(True))))
+
             return self.slv.mkTerm(Kind.AND,
                                    self.slv.mkTerm(Kind.OR, *allow_match_list),
-                                        self.slv.mkTerm(Kind.NOT,
-                                                   self.slv.mkTerm(Kind.AND, *deny_match_list)))
+                                       self.slv.mkTerm(Kind.NOT,
+                                                   self.slv.mkTerm(Kind.AND,*deny_match_list  )))
 
     def get_statements(self):
         for p_set in [self.policy_set_p, self.policy_set_q]:
+            print("\n p_set = ", p_set)
             allow_match_list = self.get_match_list(self.get_allow_policies(p_set))
+            print("\n len allow match list = ", len(allow_match_list))
             deny_match_list = self.get_match_list(self.get_deny_policies(p_set))
             yield self.get_policy_set_re(allow_match_list, deny_match_list)
 
     def prove(self, statement_1, statement_2):
         #return z3.prove(z3.Implies(statement_1, statement_2))
-        return self.slv.checkSatAssuming(self.slv.mkTerm(Kind.IMPLIES, statement_1, statement_2))
+        stmt = self.slv.mkTerm(Kind.NOT,self.slv.mkTerm(Kind.IMPLIES, statement_1, statement_2))
+        #stmt = self.slv.mkTerm(Kind.IMPLIES, statement_1, statement_2)
+        print("\n Statement : = ", stmt, " \n" )
+
+        print ("\n\n get Assertions === ", self.slv.getAssertions())
+        return self.slv.checkSatAssuming(stmt.notTerm())
 
     def p_implies_q(self):
-        return self.prove(self.P, self.Q)
+
+        result = self.prove(self.P, self.Q)
+
+        print("p=>q : ", result)
 
     def q_implies_p(self):
-        return self.prove(self.Q, self.P)
+        result = self.prove(self.Q, self.P)
+        print("q=>p: ", result)
+        return result
