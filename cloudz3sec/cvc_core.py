@@ -22,14 +22,6 @@ class BaseRe(object):
         #print("Setting up the solver in BaseRe \n")
 
         self.slv = slv
-        # Set the logic
-      #  self.slv.setLogic("ALL")
-        # Produce models
-      #  self.slv.setOption("produce-models", "true")
-        # The option strings-exp is needed
-      #  self.slv.setOption("strings-exp", "true")
-        # Set output language to SMTLIB2
-      #  self.slv.setOption("output-language", "smt2")
         # String type
         self.string = self.slv.getStringSort()
 
@@ -44,7 +36,7 @@ class BaseRe(object):
         self.data = value
         #print("\n BaseRe set data =", self.data)
 
-    def get_cvc_boolterm(self, name: str, slv:cvc5.Solver) -> cvc5.Term:
+    def get_cvc_boolterm(self, name: str) -> cvc5.Term:
         """
                 Generate a z3 boolean expression in one or more free variables that equals the constraint in the free variable(s)
                 represented by the value specified for this instance.
@@ -58,10 +50,10 @@ class BaseRe(object):
         #print("forming cvc boolterm -->" , name)
         # String variables
         #free_var = self.slv.mkConst(self.string, name)
-        free_var = slv.mkConst(self.string, name)
+        free_var = self.slv.mkConst(self.string, name)
         #print("free_var = ", free_var)
         #term = self.slv.mkTerm(Kind.STRING_IN_REGEXP, free_var, self.to_re())
-        term = slv.mkTerm(Kind.STRING_IN_REGEXP, free_var, self.to_re())
+        term = self.slv.mkTerm(Kind.STRING_IN_REGEXP, free_var, self.to_re())
         #print(" \n term = " , term)
         return term
 
@@ -110,8 +102,7 @@ class StringEnumRe(BaseRe):
                         self.slv.mkString(value))
         #print(" \n term = ", term)
         return term
-        #return self.slv.mkTerm(Kind.STRING_TO_REGEXP,
-        #                self.slv.mkString(value))
+
 
 
 class StringRe(BaseRe):
@@ -169,7 +160,7 @@ class StringRe(BaseRe):
                 return self.slv.mkTerm(Kind.REGEXP_CONCAT,result, self.z_all_vals_re_ref)
             # handle whether this is the final part or not:
             if idx + 2 == len(parts):
-                #return z3.Concat(result, z3.Re(z3.StringVal(part)))  <-- This statement is exactly same as the statement in line 168
+                #return z3.Concat(result, z3.Re(z3.StringVal(part)))
                 return self.slv.mkTerm(Kind.REGEXP_CONCAT,result, self.slv.mkTerm(Kind.STRING_TO_REGEXP,
                                self.slv.mkString(part)))
             #result = z3.Concat(result, z3.Re(z3.StringVal(part)))
@@ -231,12 +222,12 @@ class StringTupleRe(BaseRe):
             #print(res)
         #return z3.Concat(*res)
         #print("\n final res = ", res)
-        e = self.slv.mkTerm(Kind.STRING_TO_REGEXP,self.slv.mkString('tacc'))
+        #e = self.slv.mkTerm(Kind.STRING_TO_REGEXP,self.slv.mkString('tacc'))
 
         #e = res[0]
-        y = self.slv.mkTerm(Kind.REGEXP_CONCAT, *res)
+        term = self.slv.mkTerm(Kind.REGEXP_CONCAT, *res)
         #print("y = ", y)
-        return y
+        return term
 
         #return self.slv.mkTerm(Kind.REGEXP_CONCAT,e, p[1],p[2],p[3], p[4])
 
@@ -388,16 +379,6 @@ class PolicyEquivalenceChecker(object):
 
     def __init__(self, policy_type: type, policy_set_p: list[BasePolicy], policy_set_q: list[BasePolicy], slv:cvc5.Solver):
         self.slv = slv
-        # # Set the logic
-        # self.slv.setLogic("ALL")
-        # # Produce models
-        # self.slv.setOption("produce-models", "true")
-        # # The option strings-exp is needed
-        # self.slv.setOption("strings-exp", "true")
-        # # Set output language to SMTLIB2
-        # self.slv.setOption("output-language", "smt2")
-
-
 
         # the type of policies this policy checker is working with. Should be a child of BasePolicy
         self.policy_type = policy_type
@@ -416,18 +397,6 @@ class PolicyEquivalenceChecker(object):
         # statements related to the policy sets (1 for each)
         self.P, self.Q = self.get_statements()
 
-    # def get_masked_bv(self, netmasklen):
-
-    #     if netmasklen == '24':
-    #         netmask_ip = IpAddr('255.255.255.0/24')
-    #         netmask_ip.set_data()
-
-    #     else:  # 16 bit
-    #         netmask_ip = IpAddr('255.255.0.0/16')
-    #         netmask_ip.set_data()
-    #     netmask_bv = netmask_ip.to_masked_bv()
-    #     return netmask_bv
-    # self.masked_ip_bv = x & netmask_bv
 
     def get_allow_policies(self, policy_set: list[BasePolicy]):
         return [p for p in policy_set if getattr(p, p.decision_field).decision == 'allow']
@@ -439,22 +408,25 @@ class PolicyEquivalenceChecker(object):
         and_list = []
         for p in policy_set:
             #boolrefs = [getattr(p, f).get_z3_boolref(f) for f in self.z3_constraint_property_names]
-            boolterms = [getattr(p, f).get_cvc_boolterm(f,self.slv) for f in self.z3_constraint_property_names]
+            boolterms = [getattr(p, f).get_cvc_boolterm(f) for f in self.z3_constraint_property_names]
 
             #and_list.append(z3.And(*boolrefs))
-            #if len(boolterms) == 1:
-            #and_list.append(self.slv.mkTerm(Kind.AND, boolterms[0],self.slv.mkBoolean(True) ))
-            #else:
-            and_list.append(self.slv.mkTerm(Kind.AND,*boolterms))
+            if len(boolterms) == 1:
+                and_list.append(boolterms[0])
+            else:
+                and_list.append(self.slv.mkTerm(Kind.AND,*boolterms))
 
 
         #print(and_list)
         return and_list
 
     def get_policy_set_re(self, allow_match_list: list, deny_match_list: list):
+        if len(allow_match_list) == 1:
+            allow_or_term = allow_match_list[0]
+        else:
+            allow_or_term = self.slv.mkTerm(Kind.OR, *allow_match_list)
         if len(deny_match_list) == 0:
-            #return z3.Or(*allow_match_list)
-            return self.slv.mkTerm(Kind.OR, *allow_match_list)
+           return allow_or_term
         else:
             #return z3.And(z3.Or(*allow_match_list), z3.Not(z3.And(*deny_match_list)))
             #return self.slv.mkTerm(Kind.AND,
@@ -468,10 +440,20 @@ class PolicyEquivalenceChecker(object):
             #                       self.slv.mkTerm(Kind.NOT,
             #                                       self.slv.mkTerm(Kind.AND, deny_match_list[0],self.slv.mkBoolean(True))))
 
-            return self.slv.mkTerm(Kind.AND,
-                                   self.slv.mkTerm(Kind.OR, *allow_match_list),
-                                       self.slv.mkTerm(Kind.NOT,
-                                                   self.slv.mkTerm(Kind.AND,*deny_match_list  )))
+            #return self.slv.mkTerm(Kind.AND,
+            #                       self.slv.mkTerm(Kind.OR, *allow_match_list),
+            #                           self.slv.mkTerm(Kind.NOT,
+            #                                       self.slv.mkTerm(Kind.AND,*deny_match_list  )))
+
+            if len(deny_match_list) == 1:
+                return self.slv.mkTerm(Kind.AND,
+                    allow_or_term,
+                    self.slv.mkTerm(Kind.NOT, deny_match_list[0]))
+            else:
+                return self.slv.mkTerm(Kind.AND,
+                                       self.slv.mkTerm(Kind.OR, allow_or_term),
+                                           self.slv.mkTerm(Kind.NOT,
+                                                      self.slv.mkTerm(Kind.AND,*deny_match_list)))
 
     def get_statements(self):
         for p_set in [self.policy_set_p, self.policy_set_q]:
@@ -487,16 +469,20 @@ class PolicyEquivalenceChecker(object):
         #stmt = self.slv.mkTerm(Kind.IMPLIES, statement_1, statement_2)
         print("\n Statement : = ", stmt, " \n" )
 
-        print ("\n\n get Assertions === ", self.slv.getAssertions())
-        return self.slv.checkSatAssuming(stmt.notTerm())
+        #print ("\n\n get Assertions === ", self.slv.getAssertions())
+        return self.slv.checkSatAssuming(stmt)
+        #return self.slv.checkSat()
 
     def p_implies_q(self):
 
         result = self.prove(self.P, self.Q)
+        print("\n p=>q : ", result)
+        #if result:
+        #    print("x = ", self.slv.getValue())
 
-        print("p=>q : ", result)
+
 
     def q_implies_p(self):
         result = self.prove(self.Q, self.P)
-        print("q=>p: ", result)
+        print("\n q=>p: ", result)
         return result

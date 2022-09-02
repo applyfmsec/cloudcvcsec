@@ -22,16 +22,16 @@ slv.setOption("output-language", "smt2")
 t = CloudPolicyManager()
 
 
-print("\n policy p1: \n ")
+#print("\n policy p1: \n ")
 p1 = t.policy_from_strs('tacc.dev.testuser1', 'allow', slv)
-print("\n policy p2: \n ")
+#print("\n policy p2: \n ")
 p2 = t.policy_from_strs('tacc.dev.testuser2', 'deny', slv)
 p = [p1, p2]
 
 
-print("\n policy q1: \n ")
+#print("\n policy q1: \n ")
 q1 = t.policy_from_strs('tacc.dev.testuser1','allow', slv)
-print("\n policy q2: \n ")
+#print("\n policy q2: \n ")
 q2 = t.policy_from_strs('tacc.dev.testuser2',  'deny',slv)
 q = [q1, q2]
 #chk_0 = PolicyEquivalenceChecker(policy_type=CloudExamplePolicy, policy_set_p=p, policy_set_q=q, slv=slv)
@@ -53,27 +53,28 @@ slv1.setOption("output-language", "smt2")
 t1 = CloudPolicyManager()
 # example 1:
 # In this example, policy set 1 is more permissive than set 2, as it allows any method on sys1:
-print("\n policy p0: \n ")
-p0 = t1.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys', '*', 'allow',slv1)
+#print("\n policy p0: \n ")
+#p0 = t1.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys', '*', 'allow',slv1)
 print("\n policy p1: \n ")
 p1 = t1.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys1', '*', 'allow',slv1)
 print("\n policy p2: \n ")
 p2 = t1.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys2', '*', 'deny', slv1)
-print("\n policy p3: \n ")
-p3 = t1.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys2', '*', 'deny', slv1)
-p = [p0, p1, p2,p3]
+#print("\n policy p3: \n ")
+#p3 = t1.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys2', '*', 'deny', slv1)
+p = [p1, p2]
 
-print("\n policy q0: \n ")
-q0 = t1.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys', '*', 'allow',slv1)
+#print("\n policy q0: \n ")
+#q0 = t1.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys', '*', 'allow',slv1)
 print("\n policy q1: \n ")
 q1 = t1.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys1', 'GET', 'allow',slv1)
 print("\n policy q2: \n ")
 q2 = t1.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys2', 'GET', 'deny', slv1)
-print("\n policy q3: \n ")
-q3 = t1.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys2', '*', 'deny', slv1)
+#print("\n policy q3: \n ")
+#q3 = t1.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys2', '*', 'deny', slv1)
 
-q = [q0,q1, q2,q3]
+q = [q1, q2]
 chk_1 = PolicyEquivalenceChecker(policy_type=CloudPolicy, policy_set_p=p, policy_set_q=q, slv=slv1)
+
 print("\n Result Example 1 -------- \n ")
 # z3 proves that the Q policy set is less permissive than P:
 chk_1.q_implies_p()
