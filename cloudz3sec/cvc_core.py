@@ -55,6 +55,7 @@ class BaseRe(object):
         #term = self.slv.mkTerm(Kind.STRING_IN_REGEXP, free_var, self.to_re())
         term = self.slv.mkTerm(Kind.STRING_IN_REGEXP, free_var, self.to_re())
         #print(" \n term = " , term)
+        #return (term, free_var)
         return term
 
 
@@ -122,7 +123,7 @@ class StringRe(BaseRe):
         #self.z_all_vals_re_ref = z3.Star(z3.Union([z3.Re(z3.StringVal(c)) for c in charset]))
         p = [self.slv.mkTerm(Kind.STRING_TO_REGEXP,
                              self.slv.mkString(c)) for c in charset]
-        self.z_all_vals_re_ref = self.slv.mkTerm(Kind.REGEXP_UNION, *p)
+        self.z_all_vals_re_ref = self.slv.mkTerm(Kind.REGEXP_STAR,self.slv.mkTerm(Kind.REGEXP_UNION, *p))
 
 
     def to_re(self, value=None):
@@ -388,12 +389,13 @@ class PolicyEquivalenceChecker(object):
         self.policy_set_q = policy_set_q
 
         # one free string variable for each dimensions of a policy
-        self.free_variables = {}
-        self.free_variables_type = {}
+        self.free_variables = []
+        #self.free_variables_type = {}
         # the list of proerty names that will be contributing to the z3 boolean expression constraints.
         # the Decision field is treated in a special way and does not contribute a z3 boolean expression so we skip it
         # here.
         self.z3_constraint_property_names = [f['name'] for f in self.policy_type.fields if not f['type'] == Decision]
+        print("\n contraint names: ", self.z3_constraint_property_names)
         # statements related to the policy sets (1 for each)
         self.P, self.Q = self.get_statements()
 
@@ -407,8 +409,9 @@ class PolicyEquivalenceChecker(object):
     def get_match_list(self, policy_set: list[BasePolicy]):
         and_list = []
         for p in policy_set:
+            boolterms = []
             #boolrefs = [getattr(p, f).get_z3_boolref(f) for f in self.z3_constraint_property_names]
-            boolterms = [getattr(p, f).get_cvc_boolterm(f) for f in self.z3_constraint_property_names]
+            boolterms  = [getattr(p, f).get_cvc_boolterm(f) for f in self.z3_constraint_property_names]
 
             #and_list.append(z3.And(*boolrefs))
             if len(boolterms) == 1:
@@ -428,22 +431,6 @@ class PolicyEquivalenceChecker(object):
         if len(deny_match_list) == 0:
            return allow_or_term
         else:
-            #return z3.And(z3.Or(*allow_match_list), z3.Not(z3.And(*deny_match_list)))
-            #return self.slv.mkTerm(Kind.AND,
-            #                       self.slv.mkTerm(Kind.OR, *allow_match_list),
-            #                            self.slv.mkTerm(Kind.NOT,
-            #                                       self.slv.mkTerm(Kind.AND, *deny_match_list)))
-
-            #if len(allow_match_list) == 1 and len(deny_match_list) == 1:
-            #    return self.slv.mkTerm(Kind.AND,
-            #                       self.slv.mkTerm(Kind.OR, allow_match_list[0], self.slv.mkBoolean(False)),
-            #                       self.slv.mkTerm(Kind.NOT,
-            #                                       self.slv.mkTerm(Kind.AND, deny_match_list[0],self.slv.mkBoolean(True))))
-
-            #return self.slv.mkTerm(Kind.AND,
-            #                       self.slv.mkTerm(Kind.OR, *allow_match_list),
-            #                           self.slv.mkTerm(Kind.NOT,
-            #                                       self.slv.mkTerm(Kind.AND,*deny_match_list  )))
 
             if len(deny_match_list) == 1:
                 return self.slv.mkTerm(Kind.AND,
@@ -457,32 +444,63 @@ class PolicyEquivalenceChecker(object):
 
     def get_statements(self):
         for p_set in [self.policy_set_p, self.policy_set_q]:
-            print("\n p_set = ", p_set)
+            #print("\n p_set = ", p_set)
             allow_match_list = self.get_match_list(self.get_allow_policies(p_set))
-            print("\n len allow match list = ", len(allow_match_list))
+            print("\n len(allow match list) = ", len(allow_match_list))
             deny_match_list = self.get_match_list(self.get_deny_policies(p_set))
+            print("\n len(deny_match_list) = ", len(deny_match_list))
             yield self.get_policy_set_re(allow_match_list, deny_match_list)
+        #print("\n len(allow match list) = ", len(allow_match_list))
+        #print("\n len(deny_match_list) = ", len(deny_match_list))
 
     def prove(self, statement_1, statement_2):
-        #return z3.prove(z3.Implies(statement_1, statement_2))
-        stmt = self.slv.mkTerm(Kind.NOT,self.slv.mkTerm(Kind.IMPLIES, statement_1, statement_2))
-        #stmt = self.slv.mkTerm(Kind.IMPLIES, statement_1, statement_2)
-        print("\n Statement : = ", stmt, " \n" )
 
-        #print ("\n\n get Assertions === ", self.slv.getAssertions())
-        return self.slv.checkSatAssuming(stmt)
-        #return self.slv.checkSat()
+        #self.slv.declareFun('principal', [self.slv.getStringSort()], self.slv.getStringSort() )
+
+
+        stmt = self.slv.mkTerm(Kind.NOT,self.slv.mkTerm(Kind.IMPLIES, statement_1, statement_2))
+
+        print("\n Term to be Proved : = ", stmt, " \n")
+        self.slv.assertFormula(stmt)
+
+        #print("\n  getAssertions list len === ", len(self.slv.getAssertions()))
+        print ("\n getAssertions === ", self.slv.getAssertions())
+        #result = self.slv.checkSatAssuming(stmt)
+        result =  self.slv.checkSat()
+
+        print("\n --- Result:----  ", result)
+        if result.isUnsat():
+            print (" UnSat = > PROVED \n")
+            unsatCore = self.slv.getUnsatCore();
+
+            print("\n unsat core size: ", len(unsatCore))
+
+            print("\n unsat core: ", unsatCore)
+
+        if result.isSat():
+            print("---- SAT ------ \n ")
+            # print("x = ", self.slv.getValue(self.slv.mkConst(self.slv.getStringSort(),'principal')))
+
+            #print("\n sat: value: ", self.slv.blockModelValues(stmt))
+            #print("\n value: ", self.slv.getModel(self.slv.getStringSort(),self.slv.getConst('principal')))
+
+        if result.isUnknown():
+            print(" ------ Unknown  ----- ")
+
+
+        return result
 
     def p_implies_q(self):
-
+        print("\n p=>q : ------------------------Start The Prove --------------\n ")
         result = self.prove(self.P, self.Q)
-        print("\n p=>q : ", result)
-        #if result:
-        #    print("x = ", self.slv.getValue())
+        print("\n p=>q result: ", result )
+        return result
+
 
 
 
     def q_implies_p(self):
+        print("\n q=>p: -----------------Start The Prove--------------------- \n")
         result = self.prove(self.Q, self.P)
         print("\n q=>p: ", result)
         return result
