@@ -23,7 +23,7 @@ class BaseRe(object):
 
         self.slv = slv
         # String type
-        self.string = self.slv.getStringSort()
+        #self.string = self.slv.getStringSort()
 
     def to_re(self, value=None):
         raise NotImplementedError()
@@ -36,7 +36,8 @@ class BaseRe(object):
         self.data = value
         #print("\n BaseRe set data =", self.data)
 
-    def get_cvc_boolterm(self, name: str) -> cvc5.Term:
+    #def get_cvc_boolterm(self, name: str) -> cvc5.Term:
+    def get_cvc_boolterm(self, free_var: Term) -> cvc5.Term:
         """
                 Generate a z3 boolean expression in one or more free variables that equals the constraint in the free variable(s)
                 represented by the value specified for this instance.
@@ -50,13 +51,10 @@ class BaseRe(object):
         #print("forming cvc boolterm -->" , name)
         # String variables
         #free_var = self.slv.mkConst(self.string, name)
-        free_var = self.slv.mkConst(self.string, name)
-        #print("free_var = ", free_var)
-        #term = self.slv.mkTerm(Kind.STRING_IN_REGEXP, free_var, self.to_re())
         term = self.slv.mkTerm(Kind.STRING_IN_REGEXP, free_var, self.to_re())
         #print(" \n term = " , term)
-        #return (term, free_var)
         return term
+        #return term
 
 
 class StringEnumRe(BaseRe):
@@ -381,6 +379,8 @@ class PolicyEquivalenceChecker(object):
     def __init__(self, policy_type: type, policy_set_p: list[BasePolicy], policy_set_q: list[BasePolicy], slv:cvc5.Solver):
         self.slv = slv
 
+        self.string = self.slv.getStringSort()
+
         # the type of policies this policy checker is working with. Should be a child of BasePolicy
         self.policy_type = policy_type
 
@@ -389,6 +389,7 @@ class PolicyEquivalenceChecker(object):
         self.policy_set_q = policy_set_q
 
         # one free string variable for each dimensions of a policy
+        print("\n Initializing self.free_variables -----\n")
         self.free_variables = []
         #self.free_variables_type = {}
         # the list of proerty names that will be contributing to the z3 boolean expression constraints.
@@ -409,9 +410,39 @@ class PolicyEquivalenceChecker(object):
     def get_match_list(self, policy_set: list[BasePolicy]):
         and_list = []
         for p in policy_set:
-            boolterms = []
+
             #boolrefs = [getattr(p, f).get_z3_boolref(f) for f in self.z3_constraint_property_names]
-            boolterms  = [getattr(p, f).get_cvc_boolterm(f) for f in self.z3_constraint_property_names]
+            #boolterms  = [getattr(p, f).get_cvc_boolterm(f) for f in self.z3_constraint_property_names]
+            boolterms = []
+            for f in self.z3_constraint_property_names:
+                # String variables
+                free_var = None
+                print("\n self.free_variables : ", self.free_variables)
+                if len(self.free_variables) == 0 :
+                    free_var = self.slv.mkConst(self.string, f)
+                    #print(" Appending ", free_var, " to self.free_variables ", self.free_variables)
+                    self.free_variables.append(free_var)
+
+
+                print("\n ---  len of self.free_variables: ", len(self.free_variables))
+                flag = False
+                for v in self.free_variables:
+                    #print("\n v = ", v, "  type= ", type(v), " getSymbol: ", v.getSymbol())
+                    #print("  f : ", f)
+                    if f == v.getSymbol() :
+                        free_var = v
+                        flag = True
+                        break
+                if flag == False:
+                    free_var = self.slv.mkConst(self.string, f)
+                    #print("\n Appending ", free_var, " to self.free_variables ", self.free_variables)
+                    self.free_variables.append(free_var)
+
+                term = getattr(p, f).get_cvc_boolterm(free_var)
+                boolterms.append(term)
+
+
+
 
             #and_list.append(z3.And(*boolrefs))
             if len(boolterms) == 1:
@@ -419,7 +450,7 @@ class PolicyEquivalenceChecker(object):
             else:
                 and_list.append(self.slv.mkTerm(Kind.AND,*boolterms))
 
-
+        print("\n free_variables : = ", self.free_variables)
         #print(and_list)
         return and_list
 
@@ -454,37 +485,37 @@ class PolicyEquivalenceChecker(object):
         #print("\n len(deny_match_list) = ", len(deny_match_list))
 
     def prove(self, statement_1, statement_2):
-
-        #self.slv.declareFun('principal', [self.slv.getStringSort()], self.slv.getStringSort() )
-
-
         stmt = self.slv.mkTerm(Kind.NOT,self.slv.mkTerm(Kind.IMPLIES, statement_1, statement_2))
-
         print("\n Term to be Proved : = ", stmt, " \n")
-        self.slv.assertFormula(stmt)
-
-        #print("\n  getAssertions list len === ", len(self.slv.getAssertions()))
         print ("\n getAssertions === ", self.slv.getAssertions())
-        #result = self.slv.checkSatAssuming(stmt)
-        result =  self.slv.checkSat()
-
+        result = self.slv.checkSatAssuming(stmt)
         print("\n --- Result:----  ", result)
         if result.isUnsat():
-            print (" UnSat = > PROVED \n")
+            print (" Unsat = > PROVED \n")
             unsatCore = self.slv.getUnsatCore();
-
             print("\n unsat core size: ", len(unsatCore))
-
             print("\n unsat core: ", unsatCore)
 
-        if result.isSat():
+        elif result.isSat():
             print("---- SAT ------ \n ")
-            # print("x = ", self.slv.getValue(self.slv.mkConst(self.slv.getStringSort(),'principal')))
+            #print("x = ", self.slv.getValue(self.slv.mkConst(self.slv.getStringSort(),'')))
 
             #print("\n sat: value: ", self.slv.blockModelValues(stmt))
             #print("\n value: ", self.slv.getModel(self.slv.getStringSort(),self.slv.getConst('principal')))
+            print("\n value - Principal : ", self.slv.getValue(self.free_variables[0]))
+            print("\n value - Resource : ", self.slv.getValue(self.free_variables[1]))
+            print("\n value - Action ", self.slv.getValue(self.free_variables[2]))
+            #print("\n value - Principal : ", self.slv.getValue(self.free_variables[3]))
+            #print("\n value - Resource : ", self.slv.getValue(self.free_variables[4]))
+            #print("\n value - Action ", self.slv.getValue(self.free_variables[5]))
+            #print("\n value - Principal : ", self.slv.getValue(self.free_variables[6]))
+            #print("\n value - Resource : ", self.slv.getValue(self.free_variables[7]))
+            #print("\n value - Action ", self.slv.getValue(self.free_variables[8]))
+            #print("\n value - Principal : ", self.slv.getValue(self.free_variables[9]))
+            #print("\n value - Resource : ", self.slv.getValue(self.free_variables[10]))
+            #print("\n value - Action ", self.slv.getValue(self.free_variables[11]))
 
-        if result.isUnknown():
+        else:
             print(" ------ Unknown  ----- ")
 
 
