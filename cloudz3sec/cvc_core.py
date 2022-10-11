@@ -498,22 +498,9 @@ class PolicyEquivalenceChecker(object):
 
         elif result.isSat():
             print("---- SAT ------ \n ")
-            #print("x = ", self.slv.getValue(self.slv.mkConst(self.slv.getStringSort(),'')))
-
-            #print("\n sat: value: ", self.slv.blockModelValues(stmt))
-            #print("\n value: ", self.slv.getModel(self.slv.getStringSort(),self.slv.getConst('principal')))
-            print("\n value - Principal : ", self.slv.getValue(self.free_variables[0]))
-            print("\n value - Resource : ", self.slv.getValue(self.free_variables[1]))
-            print("\n value - Action ", self.slv.getValue(self.free_variables[2]))
-            #print("\n value - Principal : ", self.slv.getValue(self.free_variables[3]))
-            #print("\n value - Resource : ", self.slv.getValue(self.free_variables[4]))
-            #print("\n value - Action ", self.slv.getValue(self.free_variables[5]))
-            #print("\n value - Principal : ", self.slv.getValue(self.free_variables[6]))
-            #print("\n value - Resource : ", self.slv.getValue(self.free_variables[7]))
-            #print("\n value - Action ", self.slv.getValue(self.free_variables[8]))
-            #print("\n value - Principal : ", self.slv.getValue(self.free_variables[9]))
-            #print("\n value - Resource : ", self.slv.getValue(self.free_variables[10]))
-            #print("\n value - Action ", self.slv.getValue(self.free_variables[11]))
+            print("\n counterexample")
+            for fvar in self.free_variables:
+                print("\n", fvar.getSymbol(), "= ", self.slv.getValue(fvar))
 
         else:
             print(" ------ Unknown  ----- ")

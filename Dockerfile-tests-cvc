@@ -1,0 +1,16 @@
+# Image: jstubbs/cloudz3sec-tests-cvc
+
+FROM jstubbs/cloudz3sec
+
+USER root
+COPY requirements-tests.txt .
+RUN python -m pip install -r requirements-tests.txt
+
+USER cloudz3sec
+COPY tests_cvc  /home/cloudz3sec/tests_cvc
+
+COPY examples /home/cloudz3sec/examples
+WORKDIR /home/cloudz3sec
+
+ENTRYPOINT ["pytest"]
+
