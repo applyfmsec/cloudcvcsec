@@ -1,6 +1,6 @@
 import sys
 #sys.path.append('/home/cloudz3sec')
-sys.path.append('/Users/spadhy/Documents/z3prover/z3/cloudz3sec')
+sys.path.append('/Users/spadhy/Documents/z3prover/z3/cloudcvcsec')
 # print(f"python path: {sys.path}")
 import cvc5
 from cloudz3sec.cvc_cloud import CloudPolicy, CloudExamplePolicy,CloudPolicyManager
@@ -22,45 +22,28 @@ t1 = CloudPolicyManager()
 # example 1:
 print("\n -------------------------- Start of Example 1 ------------------- \n ")
 # In this example, policy set 1 is more permissive than set 2, as it allows any method on sys1:
-#print("\n policy p0: \n ")
-#p0 = t1.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys', '*', 'allow',slv1)
-#print("\n policy p1: \n ")
 p1 = t1.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys1', '*', 'allow',slv1)
-#print("\n policy p2: \n ")
 p2 = t1.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys2', '*', 'deny', slv1)
-#print("\n policy p3: \n ")
-#p3 = t1.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys2', '*', 'deny', slv1)
 p = [p1, p2]
-
-#print("\n policy q0: \n ")
-#q0 = t1.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys', '*', 'allow',slv1)
-print("\n policy q1: \n ")
 q1 = t1.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys1', 'GET', 'allow',slv1)
-print("\n policy q2: \n ")
 q2 = t1.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys2', 'GET', 'deny', slv1)
-#print("\n policy q3: \n ")
-#q3 = t1.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys2', '*', 'deny', slv1)
-
 q = [q1, q2]
 chk_1 = PolicyEquivalenceChecker(policy_type=CloudPolicy, policy_set_p=p, policy_set_q=q, slv=slv1)
-
 print("\n ------------ Result Example 1 -------- \n ")
-# z3 proves that the Q policy set is less permissive than P:
+# cvc5 proves that the Q policy set is less permissive than P:
 chk_1.q_implies_p()
 # proved
-print("---- Expected: UnSAT and Proved ---")
+print(" q => p: Expected: UNSAT and Proved")
 #
 # and it finds a counter example when we ask it to prove that P => Q:
 chk_1.p_implies_q()
-print("----- Expected: SAT and CounterExample ------ ")
+print(" p => q: Expected: SAT and CounterExample")
 # counterexample
 # [action = "PUT",
 #  resource = "tacc.dev.systems./sys1",
 #  principal = "tacc.dev.testuser1"]
-
 print("\n ---------------------------End of Example 1 ---------------------- \n ")
 print("\n -------------------------- Start of Example 2 ------------------- \n ")
-
 slv2 = cvc5.Solver()
 # Set the logic
 slv2.setLogic("ALL")
@@ -74,7 +57,7 @@ slv2.setOption("produce-unsat-cores", "true")
 t2 = CloudPolicyManager()
 # example 2:
 # In this example, the two policy sets are incomparable (note the required trailing slash in p1),
-# and z3 finds counter examples for each implication.
+# and cvc5 finds counter examples for each implication.
 p1 = t2.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys1/*', '*', 'allow',slv2)
 p2 = t2.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys2', '*', 'deny',slv2)
 p = [p1, p2]
@@ -84,25 +67,24 @@ q2 = t2.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.systems./sys2', 'GET',
 q = [q1, q2]
 chk_2 = PolicyEquivalenceChecker(policy_type=CloudPolicy, policy_set_p=p, policy_set_q=q, slv=slv2)
 
-print("\n Result Example 2 -------- \n ")
+print("\n ---------- Result Example 2 -------- \n ")
 chk_2.p_implies_q()
 # counterexample
 # [resource = "tacc.dev.systems./sys1/",
 #  action = "POST",
 #  principal = "tacc.dev.testuser1"]
 #
-print("----- Expected: SAT and CounterExample ------ ")
+print(" p => q : Expected: SAT and CounterExample")
 chk_2.q_implies_p()
 # counterexample
 # [action = "GET",
 # resource = "tacc.dev.systems./sys1",
 # principal = "tacc.dev.testuser1"]
 
-print("----- Expected: SAT and CounterExample ------ ")
+print(" q => p: Expected: SAT and CounterExample")
+print("\n --------------------------- End of Example 2 --------------------\n ")
 
-
-print("\n ---------------------------End of Example 2 ---------------------- \n ")
-
+print("\n -------------------------- Start of Example 3 ------------------- \n ")
 
 
 slv3 = cvc5.Solver()
@@ -119,9 +101,7 @@ t3 = CloudPolicyManager()
 # example 3:
 # In this example, policy set P is striclty less permissive that policy set Q,
 # as P allows GETs on paths /sys1/* while Q allows all GETs.
-print("\n P1 statement: ")
 p1 = t3.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.files./sys1/*', 'GET', 'allow',slv3)
-print("\n P2 statement: ")
 p2 = t3.policy_from_strs1('tacc.dev.testuser1', 'tacc.dev.files./sys2/*', 'GET', 'deny',slv3)
 p6 = [p1, p2]
 
@@ -131,10 +111,10 @@ q6 = [q1, q2]
 chk_3 = PolicyEquivalenceChecker(policy_type=CloudPolicy, policy_set_p=p6, policy_set_q=q6, slv=slv3)
 
 
-print("\n Result Example 3 -------- \n ")
+print("\n --------- Result Example 3 ---------- \n ")
 # In this case, z3 can find a counter example to Q => P
 chk_3.q_implies_p()
-print("----- Expected: SAT and CounterExample ------ ")
+print(" q => p : Expected: SAT and CounterExample ")
 # counterexample
 # [resource = "tacc.dev.files./",
 # action = "GET",
@@ -142,8 +122,8 @@ print("----- Expected: SAT and CounterExample ------ ")
 
 # However, in this case z3 gets stuck trying to prove that P => Q
 chk_3.p_implies_q()
-print("---- Expected: UnSAT and Proved ---")
-#
-# (... hangs ....)
+print(" p => q: Expected: UNSAT and Proved")
+
+print("\n ----------------------------- End of Example 3 -------------------\n ")
 
 
