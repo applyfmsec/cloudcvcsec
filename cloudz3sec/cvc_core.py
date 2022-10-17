@@ -389,14 +389,14 @@ class PolicyEquivalenceChecker(object):
         self.policy_set_q = policy_set_q
 
         # one free string variable for each dimensions of a policy
-        print("\n Initializing self.free_variables -----\n")
+        #print("\n Initializing self.free_variables -----\n")
         self.free_variables = []
         #self.free_variables_type = {}
         # the list of proerty names that will be contributing to the z3 boolean expression constraints.
         # the Decision field is treated in a special way and does not contribute a z3 boolean expression so we skip it
         # here.
         self.z3_constraint_property_names = [f['name'] for f in self.policy_type.fields if not f['type'] == Decision]
-        print("\n contraint names: ", self.z3_constraint_property_names)
+        #print("\n contraint names: ", self.z3_constraint_property_names)
         # statements related to the policy sets (1 for each)
         self.P, self.Q = self.get_statements()
 
@@ -417,14 +417,14 @@ class PolicyEquivalenceChecker(object):
             for f in self.z3_constraint_property_names:
                 # String variables
                 free_var = None
-                print("\n self.free_variables : ", self.free_variables)
+                #print("\n self.free_variables : ", self.free_variables)
                 if len(self.free_variables) == 0 :
                     free_var = self.slv.mkConst(self.string, f)
                     #print(" Appending ", free_var, " to self.free_variables ", self.free_variables)
                     self.free_variables.append(free_var)
 
 
-                print("\n ---  len of self.free_variables: ", len(self.free_variables))
+                #print("\n ---  len of self.free_variables: ", len(self.free_variables))
                 flag = False
                 for v in self.free_variables:
                     #print("\n v = ", v, "  type= ", type(v), " getSymbol: ", v.getSymbol())
@@ -450,7 +450,7 @@ class PolicyEquivalenceChecker(object):
             else:
                 and_list.append(self.slv.mkTerm(Kind.AND,*boolterms))
 
-        print("\n free_variables : = ", self.free_variables)
+        #print("\n free_variables : = ", self.free_variables)
         #print(and_list)
         return and_list
 
@@ -477,28 +477,26 @@ class PolicyEquivalenceChecker(object):
         for p_set in [self.policy_set_p, self.policy_set_q]:
             #print("\n p_set = ", p_set)
             allow_match_list = self.get_match_list(self.get_allow_policies(p_set))
-            print("\n len(allow match list) = ", len(allow_match_list))
+            #print("\n len(allow match list) = ", len(allow_match_list))
             deny_match_list = self.get_match_list(self.get_deny_policies(p_set))
-            print("\n len(deny_match_list) = ", len(deny_match_list))
+            #print("\n len(deny_match_list) = ", len(deny_match_list))
             yield self.get_policy_set_re(allow_match_list, deny_match_list)
         #print("\n len(allow match list) = ", len(allow_match_list))
         #print("\n len(deny_match_list) = ", len(deny_match_list))
 
     def prove(self, statement_1, statement_2):
         stmt = self.slv.mkTerm(Kind.NOT,self.slv.mkTerm(Kind.IMPLIES, statement_1, statement_2))
-        print("\n Term to be Proved : = ", stmt, " \n")
-        print ("\n getAssertions === ", self.slv.getAssertions())
         result = self.slv.checkSatAssuming(stmt)
-        print("\n --- Result:----  ", result)
+        #print("--- Result:----  ", result)
         if result.isUnsat():
-            print (" Unsat = > PROVED \n")
-            unsatCore = self.slv.getUnsatCore();
-            print("\n unsat core size: ", len(unsatCore))
-            print("\n unsat core: ", unsatCore)
+            print (" Result is unsat. Hence, PROVED \n")
+            #unsatCore = self.slv.getUnsatCore();
+            #print("\n unsat core size: ", len(unsatCore))
+            #print("\n unsat core: ", unsatCore)
 
         elif result.isSat():
-            print("---- SAT ------ \n ")
-            print("\n counterexample")
+            print(" Result is sat. ")
+            print(" counterexample")
             for fvar in self.free_variables:
                 print("\n", fvar.getSymbol(), "= ", self.slv.getValue(fvar))
 
@@ -509,16 +507,13 @@ class PolicyEquivalenceChecker(object):
         return result
 
     def p_implies_q(self):
-        print("\n p=>q : ------------------------Start The Prove --------------\n ")
+        print("\n Prove p => q ")
         result = self.prove(self.P, self.Q)
-        print("\n p=>q result: ", result )
+        print("\n Summary: p => q result: ", result )
         return result
 
-
-
-
     def q_implies_p(self):
-        print("\n q=>p: -----------------Start The Prove--------------------- \n")
+        print("\n Prove q => p : ")
         result = self.prove(self.Q, self.P)
-        print("\n q=>p: ", result)
+        print("\n Summary: q => p: ", result)
         return result
