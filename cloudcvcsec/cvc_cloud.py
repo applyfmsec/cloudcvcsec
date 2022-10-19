@@ -4,8 +4,8 @@ services. This example makes specific choices about what fields to include and t
 all cloud services, but it serves as an example for making others.
 """
 import cvc5
-from cloudz3sec import cvc_core
-from cloudz3sec.errors import MissingStringEnumData, InvalidValueError
+from cloudcvcsec import cvc_core
+from cloudcvcsec.errors import MissingStringEnumData, InvalidValueError
 
 ALPHANUM_SET = set('abcdefghijklmnopqrstuvwxyz0123456789')
 

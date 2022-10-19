@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/cloudz3sec')
+sys.path.append('/home/cloudcvcsec')
 from z3 import *
 
 def split_and_concat_ipaddr(ip_addr):

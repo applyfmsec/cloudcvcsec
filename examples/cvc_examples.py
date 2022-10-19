@@ -1,11 +1,11 @@
 import sys
-#sys.path.append('/home/cloudz3sec')
+#sys.path.append('/home/cloudcvcsec')
 sys.path.append('/Users/spadhy/Documents/z3prover/z3/cloudcvcsec')
 
 # print(f"python path: {sys.path}")
 import cvc5
-from cloudz3sec.cvc_cloud import CloudPolicy, CloudExamplePolicy,CloudPolicyManager
-from cloudz3sec.cvc_core import PolicyEquivalenceChecker
+from cloudcvcsec.cvc_cloud import CloudPolicy, CloudExamplePolicy,CloudPolicyManager
+from cloudcvcsec.cvc_core import PolicyEquivalenceChecker
 
 
 

@@ -2,8 +2,8 @@ from enum import Enum
 from typing import Any, Dict
 import cvc5
 from cvc5 import Kind, Term, Solver
-from cloudz3sec import errors
-from cloudz3sec.errors import InvalidValueError, InvalidCharacterError, InvalidStringTupleStructure, \
+from cloudcvcsec import errors
+from cloudcvcsec.errors import InvalidValueError, InvalidCharacterError, InvalidStringTupleStructure, \
     InvalidStringTupleData, MissingStringTupleData, InvalidPolicyStructure, MissingPolicyField, MissingStringEnumData, \
     MissingStringReData, InvalidPolicyFieldType, MissingInstanceData
 

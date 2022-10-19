@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/cloudz3sec')
+sys.path.append('/home/cloudcvcsec')
 # print(f"python path: {sys.path}")
 
 from cloudz3sec.cloud import CloudPolicy, CloudPolicyManager
