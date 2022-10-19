@@ -14,7 +14,7 @@ RUN python -m pip install -r requirements.txt
 
 # Creates a non-root user with an explicit UID and adds permission to access the /app folder
 # For more info, please refer to https://aka.ms/vscode-docker-python-configure-containers
-RUN adduser -u 4872 --disabled-password --gecos "" cloudz3sec
-USER cloudz3sec
+RUN adduser -u 4872 --disabled-password --gecos "" cloudcvcsec
+USER cloudcvcsec
 
-COPY cloudz3sec /home/cloudz3sec/cloudz3sec
+COPY cloudcvcsec /home/cloudcvcsec/cloudcvcsec

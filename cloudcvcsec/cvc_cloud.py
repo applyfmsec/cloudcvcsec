@@ -170,17 +170,17 @@ class BasicCloudPolicyManager(object):
             self.services = ['actors', 'apps', 'files', 'jobs', 'systems']
 
     def policy_from_strs(self, principal: str, resource: str, action: str, decision: str):
-        p = Principal(sites=self.sites, tenants=self.tenants)
+        p = Principal(sites=self.sites, tenants=self.tenants, slv = slv)
         parts = principal.split('.')
         if not len(parts) == 3:
             raise InvalidValueError(f'principal should be contain exactly 2 dot characters; got {principal}')
         p.set_data(site=parts[0], tenant=parts[1], username=parts[2])
-        r = Resource(sites=self.sites, tenants=self.tenants, services=self.services)
+        r = Resource(sites=self.sites, tenants=self.tenants, services=self.services, slv = slv)
         parts = resource.split('.')
         if not len(parts) == 4:
             raise InvalidValueError(f'resource should be contain exactly 3 dot characters; got {resource}')
         r.set_data(site=parts[0], tenant=parts[1], service=parts[2], path=parts[3])
-        a = Action()
+        a = Action(slv = slv)
         a.set_data(action)
         return BasicCloudPolicy(principal=p, resource=r, action=a, decision=cvc_core.Decision(decision))
 
