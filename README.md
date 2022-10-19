@@ -67,7 +67,7 @@ from cloudcvcsec.cvc_cloud import BasicCloudPolicyManager
 
 m = BasicCloudPolicyManager(sites=['site_1', 'site_2'], tenants=['foo', 'bar', 'baz'], services=['apps', 'files', 'jobs'])
 
-policy = m.policy_from_strs('site_1.foo.jsmith', 'site_1.foo.apps./apps/opensees', 'GET', 'allow')
+policy = m.policy_from_strs('site_1.foo.jsmith', 'site_1.foo.apps./apps/opensees', 'GET', 'allow', slv)
 ```
 In the above approach, we pass in the initial data defining the universe of all possible values for our components once to the `BasicCloudPolicyManager` constructor. This data includes the list of sites, tenants and services.
 
@@ -78,7 +78,7 @@ The main utility of `cloudcvcsec` is the ability to evaluate the equivalence of 
 
 Continuing with the example above, note that because the `Action` class from the cloud module defines the allowable HTTP verbs to be GET, POST, PUT and DELETE, we can authorize a user for all HTTP methods for a single endpoint in two equivalent ways: either through 4 policies that individually grant authorization for each HTTP method, or via a single policy that uses a wildcard (`*`) to grant authorization to all HTTP methods at once. 
 
-Here is how we might check that those two policy sets are equivalent using `cloudz3sec`:
+Here is how we might check that those two policy sets are equivalent using `cloudcvcsec`:
 
 ```python
 from cloudcvcsec.cvc_core import PolicyEquivalenceChecker
@@ -117,7 +117,7 @@ ch.p_implies_q()
 ch.q_implies_p()
 # output: "proved"
 ```
-The calls to `ch.p_implies_q()` and `ch.q_implies_p()` are wrappers around the `z3.prove()` function and print "proved" if `z3` can prove the statement is true, and will print a counter example if one is found.
+The calls to `ch.p_implies_q()` and `ch.q_implies_p()` are wrappers around the `cvc solver.checkSatAssuming()` function and print "proved" if `cvc` can prove the statement is true, and will print a counter example if one is found.
 
 For example, if we leave out one of the policies (policy `p_4`, say) from the `p` set, the call to `ch.q_implies_p()` will find a counter example:
 
@@ -128,7 +128,7 @@ For example, if we leave out one of the policies (policy `p_4`, say) from the `p
 # leave out the p_4 policy:
 p = [p_1, p_2, p_3]
 
-ch = PolicyEquivalenceChecker(policy_type=BasicCloudPolicy, policy_set_p=p, policy_set_q=q)
+ch = PolicyEquivalenceChecker(policy_type=BasicCloudPolicy, policy_set_p=p, policy_set_q=q, slv=slv)
 
 # this is still true, as p is strictly less permissive than q
 ch.p_implies_q()
@@ -141,7 +141,7 @@ ch.q_implies_p()
   #  resource = "site_1.foo.apps./apps/opensees",
   #  principal = "site_1.foo.jsmith"]
 ```
-Of course, in the above simple cases it is obvious whether the policies sets are equivalent, but the power of `cloudz3sec` comes from the ability to analyze policy sets where equivalence is not easy to determine manually. 
+Of course, in the above simple cases it is obvious whether the policies sets are equivalent, but the power of `cloudcvcsec` comes from the ability to analyze policy sets where equivalence is not easy to determine manually. 
 
 ## Creating Custom Policy Types
 "But my cloud API includes the PATCH method!" you exclaim. No problem! `cloudcvcsec` is designed to provide reusable components you can use to build your own security policy types representing the policies of your application. There are two types of building blocks provided by `cloudz3sec` that can be used for defining your own policy types: types where the underlying data are strings, and types where the underlying data are bit vectors. 
@@ -150,7 +150,7 @@ Of course, in the above simple cases it is obvious whether the policies sets are
 `cloudcvcsec` currently provides 3 different base types for working with string data in security policies: `StringRe`, `StringEnumRe`, and `StringTupleRe`. All three descend from the base class `BaseRe` and allow for policies with wildcard (`*`) characters by utilizing regular expression constraints over the theory of strings. 
 
 ### The `StringEnumRe` Type
-The `core.StringEnumRe` type can be used for strings that can take a fixed, finite set of values. The `cloud.Action` type, representing an HTTP verb is a good example of a `StringEnumRe` because instances of the type can only take on one of the following values: GET, POST, PUT, DELETE or *. In general, `StringEnumRe` values cannot contain a wildcard with other characters; e.g., `P*` is not a valid `Action` value.
+The `cvc_core.StringEnumRe` type can be used for strings that can take a fixed, finite set of values. The `cvc_cloud.Action` type, representing an HTTP verb is a good example of a `StringEnumRe` because instances of the type can only take on one of the following values: GET, POST, PUT, DELETE or *. In general, `StringEnumRe` values cannot contain a wildcard with other characters; e.g., `P*` is not a valid `Action` value.
 
 To create a new type based on `StringEnumRe`, simply descend from it and specify the allowable `values` for the new type:
 
@@ -173,7 +173,7 @@ class ExampleIdentifierType(cvc_core.StringRe, slv:cvc5.Solver):
         # your charset here ...
         super().__init__(charset=set('abcd0123456789'), slv = slv)
 ```
-The `cloud` module makes use of `StringRe` for usernames as well as (POSIX) paths on a file system.
+The `cvc_cloud` module makes use of `StringRe` for usernames as well as (POSIX) paths on a file system.
 
 ### The `StringTupleRe` Type
 The `core.StringTupleRe` type is useful for types that are really the composition of multiple `StringRe` and/or `StringEnumRe` types that should be thought of individually for the purposes of wildcard matching, but should be thought of as a single value in the overall policy. 
@@ -192,7 +192,7 @@ dictionary provides the following keys:
 
 As an example, here is how we might define our Principal type described above:
 ```python
-from cloudz3sec import core
+from cloudcvcsec import cvc_core
 
 class Principal(core.StringTupleRe):
 
