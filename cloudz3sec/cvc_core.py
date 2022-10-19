@@ -22,8 +22,7 @@ class BaseRe(object):
         #print("Setting up the solver in BaseRe \n")
 
         self.slv = slv
-        # String type
-        #self.string = self.slv.getStringSort()
+
 
     def to_re(self, value=None):
         raise NotImplementedError()
@@ -34,9 +33,7 @@ class BaseRe(object):
         Override this method in child classes for more complex types/behavior.
         """
         self.data = value
-        #print("\n BaseRe set data =", self.data)
 
-    #def get_cvc_boolterm(self, name: str) -> cvc5.Term:
     def get_cvc_boolterm(self, free_var: Term) -> cvc5.Term:
         """
                 Generate a z3 boolean expression in one or more free variables that equals the constraint in the free variable(s)
@@ -48,13 +45,9 @@ class BaseRe(object):
         """
         if not hasattr(self, 'data') or not self.data:
             raise MissingInstanceData('No data on instance. get_cvc_bool_term requires data. Was set_data called()?')
-        #print("forming cvc boolterm -->" , name)
-        # String variables
-        #free_var = self.slv.mkConst(self.string, name)
         term = self.slv.mkTerm(Kind.STRING_IN_REGEXP, free_var, self.to_re())
-        #print(" \n term = " , term)
         return term
-        #return term
+
 
 
 class StringEnumRe(BaseRe):
@@ -78,9 +71,7 @@ class StringEnumRe(BaseRe):
                     msg = f'The character {c} is reserved and cannot be used; it was used in {v}.'
                     raise InvalidCharacterError(message=msg)
         self.values = values
-        #self.z_all_vals_re_ref = z3.Union([z3.Re(z3.StringVal(v)) for v in values])
-        p = [self.slv.mkTerm(Kind.STRING_TO_REGEXP,
-                        self.slv.mkString(v)) for v in values]
+        p = [self.slv.mkTerm(Kind.STRING_TO_REGEXP, self.slv.mkString(v)) for v in values]
         self.z_all_vals_re_ref = self.slv.mkTerm(Kind.REGEXP_UNION,*p)
 
     def to_re(self, value=None):
@@ -95,11 +86,8 @@ class StringEnumRe(BaseRe):
         if value not in self.values:
             message = f"value {value} is not allowed for type {type(self)}; allowed values are {self.values}"
             raise InvalidValueError(message=message)
-        #return z3.Re(z3.StringVal(value))
-        #print("\n StringEnumRe = ", value)
-        term = self.slv.mkTerm(Kind.STRING_TO_REGEXP,
-                        self.slv.mkString(value))
-        #print(" \n term = ", term)
+
+        term = self.slv.mkTerm(Kind.STRING_TO_REGEXP, self.slv.mkString(value))
         return term
 
 
@@ -118,9 +106,7 @@ class StringRe(BaseRe):
         if charset.intersection(RESERVED_CHARS):
             raise InvalidCharacterError(f'The provided charset includes a reserved character and cannot be used.')
         self.charset = charset
-        #self.z_all_vals_re_ref = z3.Star(z3.Union([z3.Re(z3.StringVal(c)) for c in charset]))
-        p = [self.slv.mkTerm(Kind.STRING_TO_REGEXP,
-                             self.slv.mkString(c)) for c in charset]
+        p = [self.slv.mkTerm(Kind.STRING_TO_REGEXP, self.slv.mkString(c)) for c in charset]
         self.z_all_vals_re_ref = self.slv.mkTerm(Kind.REGEXP_STAR,self.slv.mkTerm(Kind.REGEXP_UNION, *p))
 
 
@@ -136,16 +122,14 @@ class StringRe(BaseRe):
         if value == '*':
             return self.z_all_vals_re_ref
         if not '*' in value:
-            return self.slv.mkTerm(Kind.STRING_TO_REGEXP,
-                                   self.slv.mkString(value))
-            #return z3.Re(z3.StringVal(value))
+            return self.slv.mkTerm(Kind.STRING_TO_REGEXP, self.slv.mkString(value))
+
         parts = value.split('*')
         # compute the first one since Concat requires at least two args.
-        #result = z3.Concat(z3.Re(z3.StringVal(parts[0])), self.z_all_vals_re_ref)
         result = self.slv.mkTerm(Kind.REGEXP_CONCAT,
-                    self.slv.mkTerm(Kind.STRING_TO_REGEXP,
-                               self.slv.mkString(parts[0])),
-                    self.z_all_vals_re_ref)
+                                 self.slv.mkTerm(Kind.STRING_TO_REGEXP,
+                                 self.slv.mkString(parts[0])),
+                                 self.z_all_vals_re_ref)
         # handle the case of str containing a single * in the last char
         if len(parts) == 2 and value[-1] == '*':
             return result
@@ -155,14 +139,13 @@ class StringRe(BaseRe):
             if part == '':
                 if idx == 0:
                     return result
-                #return z3.Concat(result, self.z_all_vals_re_ref)
+
                 return self.slv.mkTerm(Kind.REGEXP_CONCAT,result, self.z_all_vals_re_ref)
             # handle whether this is the final part or not:
             if idx + 2 == len(parts):
-                #return z3.Concat(result, z3.Re(z3.StringVal(part)))
                 return self.slv.mkTerm(Kind.REGEXP_CONCAT,result, self.slv.mkTerm(Kind.STRING_TO_REGEXP,
                                self.slv.mkString(part)))
-            #result = z3.Concat(result, z3.Re(z3.StringVal(part)))
+
             result = self.slv.mkTerm(Kind.REGEXP_CONCAT,result, self.slv.mkTerm(Kind.STRING_TO_REGEXP,
                                self.slv.mkString(part)))
         return result
@@ -173,9 +156,9 @@ class StringTupleRe(BaseRe):
     Base class for working with types that are tuples of string types.
     """
 
-    def __init__(self, fields: list[Dict[str, Any]], slv: cvc5.Solver) -> None: #<---- Added Sover
-        BaseRe.__init__(self, slv) #<---- Added Sover
-        #print("\n fields: ", fields)
+    def __init__(self, fields: list[Dict[str, Any]], slv: cvc5.Solver) -> None:
+        BaseRe.__init__(self, slv)
+
         for f in fields:
             if not 'name' in f:
                 raise InvalidStringTupleStructure(message=f'field {f} missing required "name" key.')
@@ -187,7 +170,6 @@ class StringTupleRe(BaseRe):
                 raise InvalidStringTupleStructure(message=f'field {f} "type" property should be type Type.')
             # create an instance of f['type'] passing the **f['kwargs'] as the key-word arguments to the constructor.
             val = f['type'](**f['kwargs'])
-            #print("\n val = ", val)
             setattr(self, f['name'], val)
 
         self.fields = fields
@@ -198,37 +180,19 @@ class StringTupleRe(BaseRe):
         if not self.data:
             raise MissingStringTupleData(f'No data found on {type(self)} object; was set_data() called?')
         res = []
-        # for debugging
-        i=0
-        #print("\n fields: ", self.fields)
-        ###
         for idx, field in enumerate(self.fields):
             value = self.data[field['name']]
-            #print("\n name  = ", value, "  field = ", field)
             res.append(field['type'].to_re(getattr(self, field['name']), value))
-            #### for debugging
-            #if i == 0:
-            #    print("\n res = ", res)
-            #i = i + 1
-            ####
+
             # separate each field in the tuple with a dot ('.') character, but not after the very last field:
             if idx < len(self.fields) - 1:
-                #print ("\n size(fields) = ", len(self.fields),  " idx = ", idx)
-                #res.append(z3.Re(z3.StringVal('.')))
                 res.append(self.slv.mkTerm(Kind.STRING_TO_REGEXP,
                                self.slv.mkString('.')))
-                #print("\n res = ", res)
-            #print(res)
-        #return z3.Concat(*res)
-        #print("\n final res = ", res)
-        #e = self.slv.mkTerm(Kind.STRING_TO_REGEXP,self.slv.mkString('tacc'))
 
-        #e = res[0]
+
         term = self.slv.mkTerm(Kind.REGEXP_CONCAT, *res)
-        #print("y = ", y)
         return term
 
-        #return self.slv.mkTerm(Kind.REGEXP_CONCAT,e, p[1],p[2],p[3], p[4])
 
     def set_data(self, **kwargs):
         for k, v in kwargs.items():
@@ -236,7 +200,7 @@ class StringTupleRe(BaseRe):
                 raise InvalidStringTupleData(
                     message=f'Got unexpected argument {k} to set_data(). Fields are: {self.field_names}')
             self.data[k] = v
-        #print("\n StringTupleRe set data =", self.data)
+
         # check that all fields were set
         for f in self.field_names:
             if f not in self.data.keys():
@@ -248,10 +212,8 @@ class IpAddr2(object):
     A class representing string of the IP address in the CIDR format.
     """
 
-    def __init__(self, netmasklen: int):
-        self.slv = cvc5.Solver()
-        self.slv.setLogic("QF_BV")
-
+    def __init__(self, netmasklen: int, slv: cvc5.Solver):
+        self.slv = slv
         self.netmasklen = netmasklen
         if self.netmasklen == 24:
             self.netmask_bv = self.convert_to_bv('255.255.255.0')
@@ -353,7 +315,7 @@ class BasePolicy(object):
                 raise InvalidPolicyFieldType(
                     message=f'field {property} must be of type {prop_type}; got {type(kwargs[property])}.')
             # check that at the least, each field that is not a Decision field has a function on it that
-            # can return the z3 boolref
+            # can return the cvc boolterm
             if not prop_type == Decision:
                 if not hasattr(kwargs[property], 'get_cvc_boolterm'):
                     raise InvalidPolicyFieldType(
@@ -389,14 +351,12 @@ class PolicyEquivalenceChecker(object):
         self.policy_set_q = policy_set_q
 
         # one free string variable for each dimensions of a policy
-        #print("\n Initializing self.free_variables -----\n")
         self.free_variables = []
-        #self.free_variables_type = {}
-        # the list of proerty names that will be contributing to the z3 boolean expression constraints.
-        # the Decision field is treated in a special way and does not contribute a z3 boolean expression so we skip it
+        # the list of proerty names that will be contributing to the cvc boolean expression constraints.
+        # the Decision field is treated in a special way and does not contribute a cvc boolean expression so we skip it
         # here.
-        self.z3_constraint_property_names = [f['name'] for f in self.policy_type.fields if not f['type'] == Decision]
-        #print("\n contraint names: ", self.z3_constraint_property_names)
+        self.cvc_constraint_property_names = [f['name'] for f in self.policy_type.fields if not f['type'] == Decision]
+
         # statements related to the policy sets (1 for each)
         self.P, self.Q = self.get_statements()
 
@@ -410,48 +370,33 @@ class PolicyEquivalenceChecker(object):
     def get_match_list(self, policy_set: list[BasePolicy]):
         and_list = []
         for p in policy_set:
-
-            #boolrefs = [getattr(p, f).get_z3_boolref(f) for f in self.z3_constraint_property_names]
-            #boolterms  = [getattr(p, f).get_cvc_boolterm(f) for f in self.z3_constraint_property_names]
             boolterms = []
-            for f in self.z3_constraint_property_names:
+            for f in self.cvc_constraint_property_names:
                 # String variables
                 free_var = None
-                #print("\n self.free_variables : ", self.free_variables)
                 if len(self.free_variables) == 0 :
                     free_var = self.slv.mkConst(self.string, f)
-                    #print(" Appending ", free_var, " to self.free_variables ", self.free_variables)
                     self.free_variables.append(free_var)
 
 
-                #print("\n ---  len of self.free_variables: ", len(self.free_variables))
                 flag = False
                 for v in self.free_variables:
-                    #print("\n v = ", v, "  type= ", type(v), " getSymbol: ", v.getSymbol())
-                    #print("  f : ", f)
                     if f == v.getSymbol() :
                         free_var = v
                         flag = True
                         break
                 if flag == False:
                     free_var = self.slv.mkConst(self.string, f)
-                    #print("\n Appending ", free_var, " to self.free_variables ", self.free_variables)
                     self.free_variables.append(free_var)
 
                 term = getattr(p, f).get_cvc_boolterm(free_var)
                 boolterms.append(term)
 
-
-
-
-            #and_list.append(z3.And(*boolrefs))
             if len(boolterms) == 1:
                 and_list.append(boolterms[0])
             else:
-                and_list.append(self.slv.mkTerm(Kind.AND,*boolterms))
+                and_list.append(self.slv.mkTerm(Kind.AND, *boolterms))
 
-        #print("\n free_variables : = ", self.free_variables)
-        #print(and_list)
         return and_list
 
     def get_policy_set_re(self, allow_match_list: list, deny_match_list: list):
@@ -475,25 +420,16 @@ class PolicyEquivalenceChecker(object):
 
     def get_statements(self):
         for p_set in [self.policy_set_p, self.policy_set_q]:
-            #print("\n p_set = ", p_set)
             allow_match_list = self.get_match_list(self.get_allow_policies(p_set))
-            #print("\n len(allow match list) = ", len(allow_match_list))
             deny_match_list = self.get_match_list(self.get_deny_policies(p_set))
-            #print("\n len(deny_match_list) = ", len(deny_match_list))
             yield self.get_policy_set_re(allow_match_list, deny_match_list)
-        #print("\n len(allow match list) = ", len(allow_match_list))
-        #print("\n len(deny_match_list) = ", len(deny_match_list))
+
 
     def prove(self, statement_1, statement_2):
         stmt = self.slv.mkTerm(Kind.NOT,self.slv.mkTerm(Kind.IMPLIES, statement_1, statement_2))
         result = self.slv.checkSatAssuming(stmt)
-        #print("--- Result:----  ", result)
         if result.isUnsat():
             print (" Result is unsat. Hence, PROVED \n")
-            #unsatCore = self.slv.getUnsatCore();
-            #print("\n unsat core size: ", len(unsatCore))
-            #print("\n unsat core: ", unsatCore)
-
         elif result.isSat():
             print(" Result is sat. ")
             print(" counterexample")
@@ -502,7 +438,6 @@ class PolicyEquivalenceChecker(object):
 
         else:
             print(" ------ Unknown  ----- ")
-
 
         return result
 
