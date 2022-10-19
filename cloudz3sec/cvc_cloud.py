@@ -136,7 +136,7 @@ class CloudPolicy(cvc_core.BasePolicy):
         {'name': 'principal', 'type': Principal},
         {'name': 'resource', 'type': Resource},
         {'name': 'action', 'type': Action},
-        #{'name': 'src_ip', 'type': cvc_core.IpAddr2},
+        # {'name': 'src_ip', 'type': cvc_core.IpAddr2},
         {'name': 'decision', 'type': cvc_core.Decision}
     ]
 
@@ -199,37 +199,7 @@ class CloudPolicyManager(object):
         self.tenants = ['admin', 'cii', 'dev', 'a2cps', 'tacc']
         self.services = ['actors', 'apps', 'files', 'jobs', 'systems']
 
-    def policy_from_strs(self, principal: str, resource: str, action: str, src_ip: str, decision: str):
-        p = Principal(sites=self.sites, tenants=self.tenants)
-        parts = principal.split('.')
-        if not len(parts) == 3:
-            raise InvalidValueError(f'principal should be contain exactly 2 dot characters; got {principal}')
-        p.set_data(site=parts[0], tenant=parts[1], username=parts[2])
-        r = Resource(sites=self.sites, tenants=self.tenants, services=self.services)
-        parts = resource.split('.')
-        if not len(parts) == 4:
-            raise InvalidValueError(f'resource should be contain exactly 3 dot characters; got {resource}')
-        r.set_data(site=parts[0], tenant=parts[1], service=parts[2], path=parts[3])
-        a = Action()
-        a.set_data(action)
-
-        try:
-            ip_addr, netmasklen = src_ip.split('/')
-        except ValueError:
-            msg = "Could not get IP address and netmask length from src_ip ({src_ip}). " + \
-                  f"Format should be A.B.C.D/E."
-            raise InvalidValueError(msg)
-        try:
-            netmasklen = int(netmasklen)
-        except:
-            raise InvalidValueError(f"Got invalid netmask length from src_ip ({src_ip}). " + \
-                                    "Format should be A.B.C.D/E where E is an integer.")
-
-        ipaddr = cvc_core.IpAddr2(netmasklen)
-        ipaddr.set_data(ip_addr=src_ip)
-        return CloudPolicy(principal=p, resource=r, action=a, src_ip=ipaddr, decision=cvc_core.Decision(decision))
-
-    def policy_from_strs1(self, principal: str, resource: str, action: str, decision: str, slv:cvc5.Solver):
+    def policy_from_strs(self, principal: str, resource: str, action: str, decision: str, slv:cvc5.Solver):
         p = Principal(sites=self.sites, tenants=self.tenants, slv = slv)
         parts = principal.split('.')
         if not len(parts) == 3:
@@ -245,12 +215,35 @@ class CloudPolicyManager(object):
 
         return CloudPolicy(principal=p, resource=r, action=a, decision=cvc_core.Decision(decision))
 
-
-
-    def policy_from_strs(self, principal: str, decision: str, slv:cvc5.Solver):
+    def policy_from_strs1(self, principal: str, resource: str, action: str, src_ip: str, decision: str, slv:cvc5.Solver):
         p = Principal(sites=self.sites, tenants=self.tenants, slv = slv)
         parts = principal.split('.')
         if not len(parts) == 3:
             raise InvalidValueError(f'principal should be contain exactly 2 dot characters; got {principal}')
         p.set_data(site=parts[0], tenant=parts[1], username=parts[2])
-        return CloudExamplePolicy(principal=p, decision=cvc_core.Decision(decision))
+        r = Resource(sites=self.sites, tenants=self.tenants, services=self.services, slv = slv)
+        parts = resource.split('.')
+        if not len(parts) == 4:
+            raise InvalidValueError(f'resource should be contain exactly 3 dot characters; got {resource}')
+        r.set_data(site=parts[0], tenant=parts[1], service=parts[2], path=parts[3])
+        a = Action(slv = slv)
+        a.set_data(action)
+
+        try:
+            ip_addr, netmasklen = src_ip.split('/')
+        except ValueError:
+            msg = "Could not get IP address and netmask length from src_ip ({src_ip}). " + \
+                  f"Format should be A.B.C.D/E."
+            raise InvalidValueError(msg)
+        try:
+            netmasklen = int(netmasklen)
+        except:
+            raise InvalidValueError(f"Got invalid netmask length from src_ip ({src_ip}). " + \
+                                    "Format should be A.B.C.D/E where E is an integer.")
+
+        ipaddr = cvc_core.IpAddr2(netmasklen, slv = slv)
+        ipaddr.set_data(ip_addr=src_ip)
+        return CloudPolicy(principal=p, resource=r, action=a, src_ip=ipaddr, decision=cvc_core.Decision(decision))
+
+
+
