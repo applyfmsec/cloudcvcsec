@@ -10,7 +10,7 @@ print(f"Python path: {sys.path}")
 #import z3
 import cvc5
 from cvc5 import Kind, Term, Solver
-from cloudz3sec import cvc_core, cvc_cloud, errors
+from cloudcvcsec import cvc_core, cvc_cloud, errors
 
 def get_solver():
     slv = cvc5.Solver()
@@ -45,18 +45,9 @@ def test_string_enum_re_basic():
     #assert regex == z3.Re(z3.StringVal('val_1'))
     assert regex == slv.mkTerm(Kind.STRING_TO_REGEXP,slv.mkString('val_1'))
     # only 'val_1' should match
-    #assert z3.simplify(z3.InRe('val_1', regex))
-    #sat_term = slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('val_1'), regex)
-    #result =  slv.checkSatAssuming(sat_term)
-    #assert result.isSat() == True
     assert sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('val_1'), regex))
-    #sat_term = slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('val_2'), regex)
-    #result = slv.checkSatAssuming(sat_term)
     assert not sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('val_2'), regex))
-    #print(slv.simplify(slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('val_7'), regex)))
-    #assert slv.simplify(slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('val_7'), regex))
-    #assert not z3.simplify(z3.InRe('val_2', regex))
-    #assert slv.assertFormula(slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('val_4'), regex))
+
 
 def sat_term(slv,term):
     result = slv.checkSatAssuming(term)
@@ -73,20 +64,11 @@ def test_string_enum_re_wildcard():
     # the to_re method generates a z3 regular expression based on the value we set.
     regex = three_vals_enum.to_re()
     # all three values should match
-    #assert z3.simplify(z3.InRe('val_1', regex))
-    #assert z3.simplify(z3.InRe('val_2', regex))
-    #assert z3.simplify(z3.InRe('val_3', regex))
-
-    #assert slv.simplify(slv.mkTerm(Kind.STRING_IN_REGEXP, 'val_1', regex))
-    #assert slv.simplify(slv.mkTerm(Kind.STRING_IN_REGEXP, 'val_2', regex))
-    #assert slv.simplify(slv.mkTerm(Kind.STRING_IN_REGEXP, 'val_3', regex))
-
     assert sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('val_1'), regex))
     assert sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('val_2'), regex))
     assert sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('val_3'), regex))
 
     # but a value not in the enum won't
-    #assert not z3.simplify(z3.InRe('foo', regex))
     assert not sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('foo'), regex))
 
 def test_string_enum_re_invalid():
@@ -118,11 +100,7 @@ def test_string_re_basic():
     # we use the to_re method to generate a z3 regular expression based on this value.
     regex = s.to_re()
     # since we provided a static string, that is the only one that will match --
-    #assert z3.simplify(z3.InRe('foobar', regex))
     # anything else will not match
-    #assert not z3.simplify(z3.InRe('fooba', regex))
-    #assert not z3.simplify(z3.InRe('oobar', regex))
-    #assert not z3.simplify(z3.InRe('foobr', regex))
     assert sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('foobar'), regex))
     assert not sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('fooba'), regex))
     assert not sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('oobar'), regex))
@@ -138,17 +116,11 @@ def test_string_re_wildcard():
     # we use the to_re method to generate a z3 regular expression based on this value.
     regex = s.to_re()
     # now, any string beginning with foo will match
-    #assert z3.simplify(z3.InRe('foo', regex))
     assert sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('foo'), regex))
-    #assert z3.simplify(z3.InRe('foobar', regex))
     assert sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('foobar'), regex))
-    #assert z3.simplify(z3.InRe('foo12345aaaaaaaaaaa', regex))
     assert sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('foo12345aaaaaaaaaaa'), regex))
 
     # but strings not beginning with "foo" will not match
-    #assert not z3.simplify(z3.InRe('fobo', regex))
-    #assert not z3.simplify(z3.InRe('oobar', regex))
-    #assert not z3.simplify(z3.InRe('fo0', regex))
     assert not sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('fobo'), regex))
     assert not sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('oobar'), regex))
     assert not sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('fo0'), regex))
@@ -204,9 +176,6 @@ def test_string_tuple_re_basic():
     # is the order they are concatinated.
     # since our specific data contained only static strings (no wild cards) we expect only exact matches:
 
-    #assert z3.simplify(z3.InRe('GET./sprokets/123', regex))
-    #assert not z3.simplify(z3.InRe('POST./sprokets/123', regex))
-    #assert not z3.simplify(z3.InRe('GET./sprokets/12', regex))
     assert sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('GET./sprokets/123'), regex))
     assert not sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('POST./sprokets/123'), regex))
     assert not sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('GET./sprokets/12'), regex))
@@ -221,18 +190,14 @@ def test_string_tuple_re_wildcard():
     regex = s.to_re()
     # now, any path that begins with "/sprokets" should match and verb from the set defined abouve
     # should match.
-    #assert z3.simplify(z3.InRe('GET./sprokets/123', regex))
-    #assert z3.simplify(z3.InRe('POST./sprokets', regex))
-    #assert z3.simplify(z3.InRe('PUT./sprokets/1234/details', regex))
     assert sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('GET./sprokets/123'), regex))
     assert sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('POST./sprokets'), regex))
     assert sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('PUT./sprokets/1234/details'), regex))
 
     # however, if any individual component doesn't match, the whole InRe will be false:
-    #assert not z3.simplify(z3.InRe('GET./sprok', regex))
+
     assert not sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('GET./sprok'), regex))
     # HEAD isn't in the list
-    #assert not z3.simplify(z3.InRe('HEAD./sprokets', regex))
     assert not sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('HEAD./sprok'), regex))
 
 
@@ -251,17 +216,6 @@ def test_string_tuple_re_invalid():
     s.set_data(url_path='/foo', verb='HEAD')
     with pytest.raises(errors.InvalidValueError):
         s.to_re()
-
-
-#def get_simple_ip_addr():
-#    return cvc_core.IpAddr2(netmasklen=24)
-
-
-#def test_ip_addr_basic():
-#    ip_addr = get_simple_ip_addr()
-#    ip_addr.set_data('11.22.33.0')
- #   assert ip_addr.ip_bv == z3.Concat(z3.BitVecVal('11', 8), z3.BitVecVal('22', 8), z3.BitVecVal('33', 8),
- #                                     z3.BitVecVal('0', 8))
 
 
 # we'll define two types to create our policy class with ----
@@ -351,18 +305,15 @@ def test_base_policy_basic():
     # note that policy.user is a User (i.e., is a StringTupleRe) for which set_data() has already been run,
     # so we can call to_re() on it directly and compare it using z3.
     # jsmith.test will be in the re because the policy set a wildcard for username.
-    #assert z3.simplify(z3.InRe('jsmth.test', policy.user.to_re()))
+
     assert sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('jsmth.test'), policy.user.to_re()))
     # however, jsmith.beta will not be because the policy set a specific tenant of "test"
-    #assert not z3.simplify(z3.InRe('jsmth.beta', policy.user.to_re()))
+
     assert not sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('jsmth.beta'), policy.user.to_re()))
     # similarly for our endpoint
     # any verb with any path beginning with /foo/ will match
-    #assert z3.simplify(z3.InRe('GET./foo/bar', policy.endpoint.to_re()))
     assert sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('GET./foo/bar'), policy.endpoint.to_re()))
-    #assert z3.simplify(z3.InRe('POST./foo/baz/123', policy.endpoint.to_re()))
     assert sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('POST./foo/baz/123'), policy.endpoint.to_re()))
-    #assert not z3.simplify(z3.InRe('GET./fo1', policy.endpoint.to_re()))
     assert not sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('GET./fo1'), policy.endpoint.to_re()))
 
 
@@ -396,7 +347,7 @@ def test_basic_policy_invalid():
     # MissingStringTupleData error --
     with pytest.raises(errors.MissingStringTupleData):
         assert sat_term(slv, slv.mkTerm(Kind.STRING_IN_REGEXP, slv.mkString('jsmth.test'), policy.user.to_re()))
-        #assert z3.simplify(z3.InRe('jsmth.test', policy.user.to_re()))
+
 
 
 class SimplePolicy(cvc_core.BasePolicy):
@@ -496,6 +447,6 @@ def test_simple_policy_checker_internals():
     # assert type(checker.free_variables['user']) == z3.z3.SeqRef == type(z3.String('abc'))
     # assert type(checker.free_variables['endpoint']) == z3.z3.SeqRef == type(z3.String('abc'))
 
-    assert len(checker.z3_constraint_property_names) == len(checker.policy_type.fields) - 1
+    assert len(checker.cvc_constraint_property_names) == len(checker.policy_type.fields) - 1
 
 

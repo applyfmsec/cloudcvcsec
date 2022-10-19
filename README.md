@@ -199,8 +199,8 @@ class Principal(core.StringTupleRe):
     def __init__(self, slv: cvc5.Solver) -> None:
         self.tenants = ['foo', 'bar', 'baz']
         fields = [
-            {'name': 'tenant', 'type': core.StringEnumRe, 'kwargs': {'values': tenants, 'slv':slv}},
-            {'name': 'username', 'type': core.StringRe, 'kwargs': {'charset': ALPHANUM_SET,'slv':slv }}
+            {'name': 'tenant', 'type': cvc_core.StringEnumRe, 'kwargs': {'values': tenants, 'slv':slv}},
+            {'name': 'username', 'type': cvc_core.StringRe, 'kwargs': {'charset': ALPHANUM_SET,'slv':slv }}
         ]
         super().__init__(fields, slv)
 ```

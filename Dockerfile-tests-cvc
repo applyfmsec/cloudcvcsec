@@ -8,9 +8,11 @@ RUN python -m pip install -r requirements-tests.txt
 
 USER cloudcvcsec
 COPY tests_cvc  /home/cloudcvcsec/tests_cvc
+COPY tests_cvc_core /home/cloucvcsec/tests_cvc_core
 
 COPY examples /home/cloudcvcsec/examples
 WORKDIR /home/cloudcvcsec
 
-ENTRYPOINT ["pytest"]
+CMD ["pytest", "-sv", "tests_cvc/test_cvc_performance.py"]
+# ENTRYPOINT ["pytest"]
 
