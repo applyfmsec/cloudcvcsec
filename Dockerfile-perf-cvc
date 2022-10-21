@@ -1,0 +1,9 @@
+FROM applyfmsec/cloudcvcsec
+
+USER root
+COPY requirements-perf.txt .
+RUN pip install --upgrade pip
+RUN python -m pip install -r requirements-perf.txt
+
+USER cloudcvcsec
+COPY tests_cvc  /home/cloudcvcsec/tests_cvc
